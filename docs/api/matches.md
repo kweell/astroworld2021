@@ -1,4 +1,27 @@
-# Persisting matching results
+# Matching and persisted suggestions
+
+## Generate matches
+
+`POST /api/requests/:id/matches/generate` calls the real matching engine and persists
+its results. The request owner or an administrator/facilitator may call it.
+Assigned volunteers cannot regenerate another participant's suggestions.
+
+```json
+{ "limit": 5 }
+```
+
+The JSON body is optional; `limit` defaults to 5 and must be an integer from 1 to 50. The 201 response contains persisted `Match[]` with IDs, scores, explanations,
+and suggested windows. A request without eligible volunteers gets an empty array
+and stays open. Re-running expires prior suggestions; accepted or closed requests
+cannot be rematched. Reads, matching, and persistence share one transaction so a
+concurrent request edit cannot leave suggestions based on stale request details.
+
+All declared request access preferences must be supported. Existing participant
+and volunteer bookings, expired windows, deadlines, supported services/modes,
+verification, and weekly capacity are taken into account. Acceptance checks the
+current booking state again. No client-supplied scores are accepted by this route.
+
+## Submit external results
 
 Only trusted facilitators/administrators may call `POST /api/matches`.
 The endpoint stores externally generated results. It never generates or adjusts

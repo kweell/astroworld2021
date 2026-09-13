@@ -1,9 +1,9 @@
 # Micro-Access Volunteer Platform
 
-Member 1's backend is implemented: JSON APIs, Supabase PostgreSQL persistence,
-service validation, bookings, lifecycle guards, demo authentication, and seed data.
-The requirements are in [the build brief](hackathon_codex_backend_spec.md).
-No frontend or matching/scoring engine is included.
+Both workstreams are combined: Member 1's JSON API and PostgreSQL persistence,
+Member 2's deterministic matching and availability engine, and the integration
+that generates/persists matches and ranks career-story offers. The requirements
+are in [the build brief](hackathon_codex_backend_spec.md). No frontend is included.
 
 ## Run locally
 
@@ -124,14 +124,14 @@ partner-specific access assignment is a later extension, not an implied public r
 
 ## Example: match and accept the seeded AMA request
 
-Submit externally calculated matching results as a trusted operator. This endpoint
-does not run Member 2's engine or calculate scores.
+Generate matches as the request owner (or a trusted operator). This now calls
+Member 2's engine and stores its scores, reasons, and compatible windows atomically.
 
 ```sh
-curl -X POST http://127.0.0.1:3000/api/matches \
+curl -X POST http://127.0.0.1:3000/api/requests/00000000-0000-4000-8000-000000000401/matches/generate \
   -H 'Content-Type: application/json' \
-  -H 'x-demo-user-id: 00000000-0000-4000-8000-000000000301' \
-  -d '{"request_id":"00000000-0000-4000-8000-000000000401","results":[{"volunteerId":"00000000-0000-4000-8000-000000000201","score":80,"reasons":["Relevant cybersecurity expertise"],"compatibleWindows":[]}]}'
+  -H 'x-demo-user-id: 00000000-0000-4000-8000-000000000101' \
+  -d '{"limit":5}'
 ```
 
 Use the returned `data[0].id` as `<match-id>`:
@@ -147,7 +147,17 @@ The response contains `data.match` and `data.engagement`. Complete that engageme
 through `PATCH /api/engagements/<engagement-id>` with `{"status":"completed"}`,
 then submit feedback through `POST /api/feedback`.
 
-To reserve the first career story:
+To rank career stories against the signed-in participant's profile:
+
+```sh
+curl -X POST http://127.0.0.1:3000/api/offers/rank \
+  -H 'Content-Type: application/json' \
+  -H 'x-demo-user-id: 00000000-0000-4000-8000-000000000101' \
+  -d '{"preferred_mode":"live_online","limit":5}'
+```
+
+Supply `availability_windows` to include schedule fit in ranking. To reserve the
+first career story:
 
 ```sh
 curl -X POST http://127.0.0.1:3000/api/engagements \
@@ -157,7 +167,7 @@ curl -X POST http://127.0.0.1:3000/api/engagements \
 ```
 
 [All endpoints and input examples](docs/api/README.md) ·
-[Member 2 integration contract](docs/integration.md)
+[Combined platform integration](docs/integration.md)
 
 ## Verification
 
@@ -165,27 +175,27 @@ curl -X POST http://127.0.0.1:3000/api/engagements \
 npm run typecheck
 npm run lint
 npm run format:check
-npm run test:core
+npm test
 npm run build
 ```
 
 Tests run migrations in isolated in-memory PostgreSQL databases and exercise the
 actual repository, service layer, and Fastify JSON endpoints. They cover concurrent
 booking attempts, lifecycle rollback, validation, role checks, and privacy.
-They do not require or connect to a hosted Supabase project. `npm test` currently
-excludes Member 2's empty test placeholders; remove that exclusion after its tests
-are implemented. The lockfile pins the installed dependency versions.
+They do not require or connect to a hosted Supabase project. `npm test` runs all
+core, matching, and integration suites. For focused checks, use `test:core`,
+`test:matching`, or `test:integration`. The lockfile pins dependency versions.
 
 ## Structure and ownership
 
 ```text
 src/core/             Member 1: domain, validation, auth, services, API, SQL repository, seed, tests
-src/matching/         Member 2: untouched empty placeholders
-src/integration/      Untouched placeholders for the final merge
+src/matching/         Member 2: pure matching, availability, ranking, fixtures, tests
+src/integration/      Adapters, transactional matching orchestration, routes, integration tests
 supabase/migrations/  Member 1: schema, constraints, lifecycle triggers, access restrictions
 scripts/setup.ts      Ordered, transactional migration runner with checksum tracking
 docs/api/             Endpoint contracts and examples
-docs/integration.md   Matching adapter contract and accounting assumptions
+docs/integration.md   Combined platform API, adapter contract, and accounting assumptions
 ```
 
 ## Implementation choices and scope
@@ -208,5 +218,5 @@ docs/integration.md   Matching adapter contract and accounting assumptions
 - Matching suggestions are advisory. Booking rechecks verification, supported
   services/modes, time conflicts, support needs, and weekly capacity.
 - There are no account signup, messaging, answer-delivery, file-upload, payment,
-  notification, or UI endpoints. Async content delivery and final matching wiring
-  are future integrations; this work persists the agreed platform lifecycle.
+  notification, or UI endpoints. Async content delivery remains a future
+  integration; matching and booking are connected now.

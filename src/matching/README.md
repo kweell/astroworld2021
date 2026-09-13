@@ -22,7 +22,7 @@ Ranks eligible volunteers for a participant-initiated request
 
 1. Each candidate is run through hard filters (verification, supported
    service, remaining capacity, supported mode, availability overlap for
-   live interactions, and access-requirement compatibility). See
+   live interactions, and support for every declared access requirement). See
    `scoring/hard-filters.ts`.
 2. Eligible candidates are scored out of 100 across expertise (35),
    industry (15), availability (20), language (10), access (15), and
@@ -30,7 +30,7 @@ Ranks eligible volunteers for a participant-initiated request
 3. Results are sorted by score descending, ties broken by ascending
    `volunteerId`, and truncated to `options.limit` (default 5).
 
-Every result includes human-readable `reasons` and any `compatibleWindows`
+Every result includes nonempty human-readable `reasons` and any `compatibleWindows`
 found for scheduling.
 
 ### `rankCareerStoryOffers(participant, offers, options?) => RankedCareerStoryOffer[]`
@@ -47,17 +47,19 @@ on absolute instants (`Date.parse`), so they are timezone-safe; inputs and
 outputs are ISO-8601 strings. The default product timezone is
 `Asia/Singapore`, used only for human-readable reasons (e.g. weekday names).
 
-## How Member 1 / integration should call this
+## Integration with Member 1
 
 ```ts
 import { matchVolunteers } from 'src/matching';
 import type { MatchRequest, VolunteerCandidate } from 'src/matching';
 
-// In src/integration/, adapt core.ServiceRequest + core.VolunteerProfile
-// into MatchRequest / VolunteerCandidate, then:
+// src/integration/adapters.ts maps core entities into these pure inputs:
 const results = matchVolunteers(matchRequest, candidates, { limit: 5 });
 // Persist `results` into the `matches` table.
 ```
+
+The combined server exposes `POST /api/requests/:id/matches/generate` and
+`POST /api/offers/rank`; see [integration documentation](../../docs/integration.md).
 
 For `career_story`, fetch open offers and call `rankCareerStoryOffers`
 instead — do not run `matchVolunteers` against career-story offers, since
@@ -74,7 +76,7 @@ type. Nothing here depends on Member 1's seed data.
 ## Tests
 
 ```bash
-npm test
+npm run test:matching
 ```
 
 Covers: availability overlap/booking/slot-suggestion behaviour (including

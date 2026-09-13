@@ -43,3 +43,30 @@ a draft; `{"status":"cancelled"}` cancels confirmed seats atomically;
 Full/completed/cancelled status cannot be used as an arbitrary shortcut.
 
 Reserve through `POST /api/engagements` with `{"offer_id":"<uuid>"}`.
+
+## Rank offers
+
+`POST /api/offers/rank` ranks available career stories for the signed-in participant.
+Topics, industries, languages, and support preferences come from their saved profile.
+
+```json
+{
+  "preferred_mode": "live_online",
+  "availability_windows": [
+    { "start": "2030-01-08T10:00:00+08:00", "end": "2030-01-08T13:00:00+08:00" }
+  ],
+  "limit": 5
+}
+```
+
+The JSON body and all fields are optional. `limit` defaults to 5 (1–50). Without a
+mode override, a single profile mode is used; multiple/no saved modes resolve to
+`either`. Without availability, schedule fit earns no points. Preferred mode,
+language, topics, and offer access features affect the score rather than excluding
+an offer. This differs from required access support on participant requests.
+
+The 200 response is `[{offerId, volunteerId, score, reasons}]`. Only future, open
+non-full offers with a verified host who supports the service and mode and has
+sufficient weekly minutes are ranked. Offers conflicting with the participant's
+existing bookings are omitted. Rankings do not create request matches or reserve
+seats. Book a returned `offerId` through `POST /api/engagements`.

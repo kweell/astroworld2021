@@ -115,6 +115,12 @@ function scoreCandidate(request: MatchRequest, candidate: VolunteerCandidate) {
   }
   score += livedExperienceScore;
 
+  if (reasons.length === 0) {
+    reasons.push(
+      'Verified volunteer supports this service and the requested interaction mode',
+    );
+  }
+
   const result: MatchResult = {
     volunteerId: candidate.volunteerId,
     score: Math.round(Math.min(100, Math.max(0, score))),

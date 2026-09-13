@@ -1,101 +1,118 @@
-# Connecting Member 2 after merge
+# Combined platform
 
-Member 1 does not import, edit, or implement anything in `src/matching/`.
-`src/integration/` remains untouched. Add adapters and orchestration there after
-Member 2 supplies its pure TypeScript exports.
+Member 1 owns core persistence, validation, permissions, and booking lifecycle.
+Member 2's engine remains pure TypeScript with independent fixtures and no database
+or API imports. `src/integration/` adapts the data and connects both workstreams.
+The server composition root registers the new routes inside core authentication.
 
-## Stable core surface
+## Use the combined API
+
+- `POST /api/requests/:id/matches/generate` — the request owner or a trusted operator
+  generates matches, persists scores/reasons/windows, and advances the request.
+  Optional body: `{"limit":5}`. Returns 201 with persisted `Match[]`.
+- `POST /api/offers/rank` — the current participant ranks future open career
+  stories using their profile and optional `preferred_mode`,
+  `availability_windows`, and `limit`. Returns 200 with rankings. It does not
+  reserve seats or create participant-request matches.
+
+All responses use the core JSON envelope. Match acceptance and career-story
+reservations use the existing engagement endpoints. See the [API contracts](api/README.md).
+
+## Server-side composition
 
 ```ts
-import { createCore } from '../core/index.js';
+import { createPlatform } from '../integration/index.js';
 import { connectDatabase } from '../core/db/client.js';
 import { readConfig } from '../core/config.js';
 
 const db = await connectDatabase(readConfig());
-const core = createCore(db);
-const request = await core.getRequest(requestId);
-const candidates = await core.getMatchingCandidates(requestId);
-const participant = await db.get(
-  'participant_profiles',
-  request.participant_id,
-);
-// After merge: results = matchVolunteers(toMatchRequest(request, participant), candidates)
-// await core.saveMatches(requestId, results);
+const { core, matching } = createPlatform(db);
+// actor is the authenticated platform user, not an ID supplied by the client.
+const matches = await matching.generateMatches(actor, requestId, { limit: 5 });
+const ranked = await matching.rankOffers(actor, {
+  preferred_mode: 'live_online',
+  availability_windows: [],
+  limit: 5,
+});
+// The suggested volunteer can accept one returned match:
+// await core.createEngagement(volunteerActor, { match_id: matches[0].id });
 ```
 
-`getRequest(requestId)` without an actor and `saveMatches(requestId, results)` are
-trusted internal functions. HTTP handlers must continue to use the authorization
-wrappers. `getMatchingCandidates(requestId): Promise<VolunteerCandidate[]>` is a
-bound method of the core instance and does not require a global connection.
-The structural `VolunteerCandidate` and `MatchResult` types exported by core match
-the build brief exactly. There is no dependency on Member 2's type files.
+Generation takes the existing PostgreSQL transaction lock, reads current data,
+calls `matchVolunteers`, and persists the returned results before releasing the
+lock. A transaction-scoped core instance reuses that connection for nested writes.
+Consequently, concurrent edits/bookings cannot change the matching inputs between
+reading and saving. The engine receives only matching fields, never contacts,
+artifacts, display names, or organisation names. Acceptance always rechecks the
+current conditions even if a stored suggestion was valid when generated.
 
-Each candidate contains only `volunteerId`, `supportedServices`, `expertiseTags`,
-`industryTags`, `languages`, `availableWindows`, `supportedModes`,
-`supportedAccessPreferences`, `livedExperienceTags`, `remainingWeeklyMinutes`, and
-`verified`. It never includes email, display name, organisation, or contact details.
-Unverified and unsupported candidates are returned so Member 2 owns eligibility
-and ranking. The booking service revalidates eligibility before confirming.
+## Adapters and contracts
 
-Map request fields in the integration adapter:
+`src/integration/adapters.ts` exports `toMatchRequest`, `toVolunteerCandidate`,
+`toCareerStoryPreferences`, and `toCareerStoryOffer`. Core data uses snake_case;
+matching data uses camelCase. This is the only conversion layer.
 
-| Core field                      | Member 2 field               |
-| ------------------------------- | ---------------------------- |
-| `id`                            | `requestId`                  |
-| `service_type`                  | `serviceType`                |
-| `topic_tags` / `industry_tags`  | `topicTags` / `industryTags` |
-| `preferred_mode`                | `preferredMode`              |
-| `duration_minutes`              | `durationMinutes`            |
-| `availability_windows`          | `availabilityWindows`        |
-| Participant profile `languages` | `languages`                  |
-| Request `access_preferences`    | `accessPreferences`          |
+| Core field                      | Matching field                 |
+| ------------------------------- | ------------------------------ |
+| Request `id`                    | `requestId`                    |
+| `service_type`                  | `serviceType`                  |
+| `topic_tags` / `industry_tags`  | `topicTags` / `industryTags`   |
+| `preferred_mode`                | `preferredMode`                |
+| `duration_minutes`              | `durationMinutes`              |
+| `availability_windows`          | `availabilityWindows`          |
+| Participant profile `languages` | `languages`                    |
+| Request `access_preferences`    | `accessPreferences`            |
+| Offer `capacity`                | `capacityRemaining`            |
+| Offer `access_features`         | `accessFeatures`               |
+| Host profile `languages`        | Career-story offer `languages` |
 
-Request access preferences are explicit per-interaction requirements; profile
-preferences are available for the caller to use when composing a request. The
-backend does not silently merge profile preferences into existing requests.
-There is no stored participant lived-experience preference field in the MVP;
-omit the optional `livedExperiencePreferences` input unless a later schema adds it.
+Request access preferences are explicit requirements for that interaction. Profile
+preferences are available when composing a new request; they are not silently
+merged into saved requests. Career-story access features instead affect ranking,
+consistent with Member 2's separate offer model. Participant lived-experience
+preferences are not stored in this MVP, so that optional engine field is omitted.
 
-`saveMatches` accepts `[{volunteerId, score, reasons, compatibleWindows}]` and
-returns persisted `Match[]`. It replaces current suggestions atomically and does
-not compute scores. The HTTP equivalent is operator-only `POST /api/matches`.
-Suggested windows describe options; acceptance checks the chosen slot against
-current actual availability and reservations, not only stale suggestion windows.
+The combined implementation resolves two contract mismatches: all declared request
+access requirements must be supported (partial support is ineligible), and every
+eligible result has a readable explanation even when no preference tags overlap.
+TypeScript's strict array checks are enabled across both members.
 
-## Availability and capacity assumptions
+## Availability and budgets
 
-The volunteer profile adds `available_windows` and `supported_modes` because these
-are required by the shared candidate contract but omitted from A1's field list.
-The candidate projection subtracts reserved times and published career stories
-from raw availability. It does not find overlap, suggest slots, or rank candidates.
-Member 2 remains responsible for those operations.
+Volunteer profiles include `available_windows` and `supported_modes` to support
+the shared candidate contract. `core.getMatchingCandidates(requestId)` returns
+only the exact `VolunteerCandidate` fields. It subtracts volunteer bookings and
+published story schedules; generation also removes the participant's existing
+bookings and clips request windows to the current time and any deadline.
+Member 2 applies eligibility filters, finds overlap, and ranks candidates.
 
-Weekly minutes use Monday 00:00 Singapore time. Confirmed/completed request
-engagements consume their duration in their scheduled week; async engagements
-consume it in their creation week. Published/full/completed career stories consume
-15 minutes once per offer, not per attendee. Draft/cancelled offers and cancelled
-engagements consume zero. A request spanning several availability weeks receives
-the lowest remaining budget among those weeks; async/either also includes the
-current week. This conservative single-number projection avoids overstating a
-candidate's availability when the shared contract has no per-week budget map.
-Actual acceptance validates the selected week again under the transaction lock.
+Weekly budgets begin Monday 00:00 Singapore time. Confirmed/completed request
+engagements consume their duration in their scheduled week, or their creation week
+for async interactions. Published/full/completed stories consume 15 minutes once
+per offer, regardless of attendee count. Draft/cancelled offers and cancelled
+engagements consume none. Requests spanning multiple availability weeks receive
+the lowest remaining budget across those weeks; async/either includes the current
+week. This is conservative because the shared contract exposes one budget value.
 
-## Career stories
+Career-story rankings omit past, full, draft, or closed offers, unavailable hosts,
+and schedules that conflict with the participant's existing bookings. The engine
+then ranks remaining offers by relevance, time, mode, language, and access features.
+Reserve a selected `offerId` through the normal engagement service.
 
-Fetch open offers through the offer service or repository, then map them to Member
-2's independent `CareerStoryOffer` interface and call `rankCareerStoryOffers`.
-Join the host's volunteer profile for languages; use offer industry/topic tags,
-schedule, mode, remaining `capacity`, and `access_features`. Those are not request
-matches, and they must not be persisted in the request `matches` table.
-A participant's chosen offer becomes a booking through `createEngagement(actor,
-{offer_id})` or `POST /api/engagements`.
+## Existing core entry points
 
-## Boundary and test notes
+`core.getRequest(requestId)` without an actor and
+`core.saveMatches(requestId, results)` remain trusted internal methods. They are
+useful for other integrations but must not be exposed without authorization.
+Operator-only `POST /api/matches` still accepts externally generated results.
+`saveMatches` stores `[{volunteerId, score, reasons, compatibleWindows}]` without
+recalculating scores. Use the new generation route for this project's engine.
 
-Core database entities use snake_case; Member 2 types use camelCase. Keep any new
-conversion in the integration directory. Core uses UTC timestamps, strict mode
-values, and fixed deterministic demo IDs documented in the root README.
-Member 2 should continue to run entirely from its own local fixtures.
-Remove `exclude: ['src/matching/**']` from `vitest.config.ts` once its empty test
-placeholders are implemented. Root TypeScript configuration already includes both
-members and the integration directory.
+## Verification
+
+`npm test` runs core, matching, and integration tests. Focused commands are
+`npm run test:core`, `npm run test:matching`, and `npm run test:integration`.
+Integration tests use the real migrations and SQL repository with embedded
+PostgreSQL. They cover all three participant services through generation and
+acceptance, separate offer ranking/reservation, permissions, busy schedules,
+expiry, and readable explanations. No hosted credentials are needed for tests.

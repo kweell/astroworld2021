@@ -77,14 +77,14 @@ describe('applyHardFilters', () => {
     ).toBe(true);
   });
 
-  it('does not hard-filter on partial access support, only full mismatch', () => {
+  it('requires every declared access requirement to be supported', () => {
     const request: MatchRequest = {
       ...askMeAnythingRequest,
       accessPreferences: ['written_instructions', 'wheelchair_access'],
     };
-    // vol-gopal supports written_instructions but not wheelchair_access: partial overlap, still eligible.
+    // Supporting written instructions alone cannot satisfy a wheelchair-access requirement.
     const result = applyHardFilters(request, findVolunteer('vol-gopal'));
-    expect(result.eligible).toBe(true);
+    expect(result.eligible).toBe(false);
   });
 
   it('never filters on fields outside the domain contract (no such fields exist)', () => {

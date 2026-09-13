@@ -2,14 +2,20 @@ import { readConfig } from '../config.js';
 import { connectDatabase } from '../db/client.js';
 import { demoAuth } from '../auth/demo-auth.js';
 import { supabaseAuth } from '../auth/auth-adapter.js';
-import { createCore } from '../index.js';
+import {
+  createPlatform,
+  registerMatchingRoutes,
+} from '../../integration/index.js';
 import { createApp } from './app.js';
 const config = readConfig();
 const db = await connectDatabase(config);
 const auth = config.DEMO_AUTH_MODE
   ? demoAuth(db, true, config.NODE_ENV)
   : supabaseAuth(db, config.SUPABASE_URL!, config.SUPABASE_SERVICE_ROLE_KEY!);
-const app = createApp(createCore(db), auth);
+const { core, matching } = createPlatform(db);
+const app = createApp(core, auth, (api) =>
+  registerMatchingRoutes(api, matching),
+);
 app.addHook('onClose', async () => db.close());
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.once(signal, () => {

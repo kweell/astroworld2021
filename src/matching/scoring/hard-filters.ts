@@ -1,7 +1,7 @@
 import type { MatchRequest, VolunteerCandidate } from '../types/volunteer.js';
 import type { TimeWindow } from '../types/common.js';
 import { findOverlap } from '../availability/find-overlap.js';
-import { tagOverlap } from './normalize-tags.js';
+import { normalizeTags, tagOverlap } from './normalize-tags.js';
 
 export interface HardFilterResult {
   eligible: boolean;
@@ -52,7 +52,7 @@ export function applyHardFilters(
       request.accessPreferences,
       candidate.supportedAccessPreferences,
     );
-    if (supported.length === 0) {
+    if (supported.length !== normalizeTags(request.accessPreferences).length) {
       failureReasons.push(
         "Volunteer cannot support the participant's access requirements",
       );

@@ -15,27 +15,29 @@ Unknown body fields are rejected, including client-supplied IDs, owner IDs, and
 arbitrary status changes. Read entity shapes in `src/core/domain/entities.ts`.
 JSON schemas and exact optional/default values are in `src/core/validation/`.
 
-| Method | Endpoint                    | Result in `data`                             | Contract                      |
-| ------ | --------------------------- | -------------------------------------------- | ----------------------------- |
-| GET    | `/api/health`               | `{status: "ok", timezone: "Asia/Singapore"}` | Public process liveness       |
-| GET    | `/api/me`                   | `{user, profile}`                            | [Profiles](profiles.md)       |
-| GET    | `/api/profiles/:userId`     | `{user, profile}`                            | [Profiles](profiles.md)       |
-| PATCH  | `/api/profiles/:userId`     | `{user_id, updated: true}`                   | [Profiles](profiles.md)       |
-| POST   | `/api/requests`             | `ServiceRequest`                             | [Requests](requests.md)       |
-| GET    | `/api/requests`             | `ServiceRequest[]`                           | [Requests](requests.md)       |
-| GET    | `/api/requests/:id`         | `ServiceRequest`                             | [Requests](requests.md)       |
-| PATCH  | `/api/requests/:id`         | `ServiceRequest`                             | [Requests](requests.md)       |
-| POST   | `/api/offers`               | `VolunteerOffer`                             | [Offers](offers.md)           |
-| GET    | `/api/offers`               | `VolunteerOffer[]`                           | [Offers](offers.md)           |
-| GET    | `/api/offers/:id`           | `VolunteerOffer`                             | [Offers](offers.md)           |
-| PATCH  | `/api/offers/:id`           | `VolunteerOffer`                             | [Offers](offers.md)           |
-| POST   | `/api/matches`              | `Match[]`                                    | [Matches](matches.md)         |
-| GET    | `/api/requests/:id/matches` | `Match[]`                                    | [Matches](matches.md)         |
-| PATCH  | `/api/matches/:id`          | `{match, engagement}`                        | [Matches](matches.md)         |
-| POST   | `/api/engagements`          | `Engagement`                                 | [Engagements](engagements.md) |
-| GET    | `/api/engagements/:id`      | `Engagement`                                 | [Engagements](engagements.md) |
-| PATCH  | `/api/engagements/:id`      | `Engagement`                                 | [Engagements](engagements.md) |
-| POST   | `/api/feedback`             | `Feedback`                                   | [Feedback](feedback.md)       |
+| Method | Endpoint                             | Result in `data`                             | Contract                                        |
+| ------ | ------------------------------------ | -------------------------------------------- | ----------------------------------------------- |
+| GET    | `/api/health`                        | `{status: "ok", timezone: "Asia/Singapore"}` | Public process liveness                         |
+| GET    | `/api/me`                            | `{user, profile}`                            | [Profiles](profiles.md)                         |
+| GET    | `/api/profiles/:userId`              | `{user, profile}`                            | [Profiles](profiles.md)                         |
+| PATCH  | `/api/profiles/:userId`              | `{user_id, updated: true}`                   | [Profiles](profiles.md)                         |
+| POST   | `/api/requests`                      | `ServiceRequest`                             | [Requests](requests.md)                         |
+| GET    | `/api/requests`                      | `ServiceRequest[]`                           | [Requests](requests.md)                         |
+| GET    | `/api/requests/:id`                  | `ServiceRequest`                             | [Requests](requests.md)                         |
+| PATCH  | `/api/requests/:id`                  | `ServiceRequest`                             | [Requests](requests.md)                         |
+| POST   | `/api/offers/rank`                   | `RankedCareerStoryOffer[]`                   | [Rank offers](offers.md#rank-offers)            |
+| POST   | `/api/offers`                        | `VolunteerOffer`                             | [Offers](offers.md)                             |
+| GET    | `/api/offers`                        | `VolunteerOffer[]`                           | [Offers](offers.md)                             |
+| GET    | `/api/offers/:id`                    | `VolunteerOffer`                             | [Offers](offers.md)                             |
+| PATCH  | `/api/offers/:id`                    | `VolunteerOffer`                             | [Offers](offers.md)                             |
+| POST   | `/api/requests/:id/matches/generate` | `Match[]`                                    | [Generate matches](matches.md#generate-matches) |
+| POST   | `/api/matches`                       | `Match[]`                                    | [Matches](matches.md)                           |
+| GET    | `/api/requests/:id/matches`          | `Match[]`                                    | [Matches](matches.md)                           |
+| PATCH  | `/api/matches/:id`                   | `{match, engagement}`                        | [Matches](matches.md)                           |
+| POST   | `/api/engagements`                   | `Engagement`                                 | [Engagements](engagements.md)                   |
+| GET    | `/api/engagements/:id`               | `Engagement`                                 | [Engagements](engagements.md)                   |
+| PATCH  | `/api/engagements/:id`               | `Engagement`                                 | [Engagements](engagements.md)                   |
+| POST   | `/api/feedback`                      | `Feedback`                                   | [Feedback](feedback.md)                         |
 
 Useful conflict codes include `INVALID_TRANSITION`, `OFFER_FULL`,
 `DUPLICATE_BOOKING`, `UNSUPPORTED_SERVICE`, `UNSUPPORTED_MODE`,

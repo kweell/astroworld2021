@@ -113,6 +113,10 @@ export function rankCareerStoryOffers(
       }
       score += accessScore;
 
+      if (reasons.length === 0) {
+        reasons.push('Open career story with an available place');
+      }
+
       const result: RankedCareerStoryOffer = {
         offerId: offer.offerId,
         volunteerId: offer.volunteerId,
