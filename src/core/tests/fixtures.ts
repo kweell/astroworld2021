@@ -49,6 +49,7 @@ export const ama = {
   service_type: 'ask_me_anything',
   title: 'A practical question',
   details: 'How do I start learning Python?',
+  topic_tags: ['python'],
   duration_minutes: 10,
 };
 export const teaching = {

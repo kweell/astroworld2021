@@ -3,7 +3,40 @@
 Both workstreams are combined: Member 1's JSON API and PostgreSQL persistence,
 Member 2's deterministic matching and availability engine, and the integration
 that generates/persists matches and ranks career-story offers. The requirements
-are in [the build brief](hackathon_codex_backend_spec.md). No frontend is included.
+are in [the build brief](hackathon_codex_backend_spec.md). A responsive React web
+app now connects both workstreams, with participant and volunteer workspaces.
+
+## Web app
+
+- **Discover:** create AMA, teaching, or review requests; browse, filter, and book
+  career stories with recommendations from the matching engine.
+- **My requests:** edit requests, review automatic volunteer matches, and follow
+  their status. Volunteers see matched requests and can accept or decline them.
+- **My sessions:** view bookings, access available contact details, cancel or
+  complete sessions, and leave feedback after completion.
+- **My profile:** edit interests, languages, connection formats, access preferences,
+  and volunteer expertise, capacity, and availability.
+- **Volunteer overview:** publish and manage career stories and their seats.
+- **Notifications:** the volunteer's bell shows new requests with overlapping
+  topics. It updates every five seconds and opens the request for acceptance.
+  Read status is saved, and closed or declined opportunities disappear.
+
+The demo account selector switches between the seeded participants and volunteers.
+All changes use the API and persist in the configured database. To demonstrate an
+AMA end to end, create a Python request as a participant, switch to Demo Volunteer 1,
+and open the notification bell to accept it, then complete the session and leave
+feedback. Request creation and edits notify verified volunteers with overlapping
+topics, including custom topics. A topic notification does not require every
+booking requirement to be satisfied yet. The request displays missing support,
+service, format, capacity, or availability before acceptance. Volunteers can
+explicitly confirm capabilities and save them to their profile from that screen;
+booking validation still runs on the server. Profile changes also discover
+relevant open requests that were previously missed.
+Topic/industry selectors support multiple choices and an Others option. Topics
+are required for requests; custom values are validated, normalized, and deduplicated.
+Live demo availability is in January 2030. All date/time inputs use Singapore time.
+Use the profile editor to add other availability. There is no built-in chat, video
+calling, or file upload; sessions use an agreed external contact method.
 
 ## Run locally
 
@@ -19,7 +52,15 @@ npm run db:seed
 npm run dev
 ```
 
-The API listens at `http://127.0.0.1:3000`. Local data persists in `.data/postgres`,
+To repair missing notifications for existing open requests, run
+`node --import tsx scripts/repair-notifications.ts`. The repair is idempotent and
+preserves existing bookings, declined matches, and notification read status.
+
+Open the UI at **http://127.0.0.1:5173**. `npm run dev` starts the Fastify API and
+Vite together; `npm run dev:api` and `npm run dev:web` start them separately.
+The API listens at `http://127.0.0.1:3000`. Vite proxies `/api` to the API, so
+browser credentials and database passwords are never needed for demo mode.
+Local data persists in `.data/postgres`,
 which is ignored by Git. Stop the API before running migration/seed commands;
 only one process should open the embedded database directory at a time.
 To start a separate clean demo, set `LOCAL_DATABASE_PATH` to a new directory,
@@ -37,6 +78,10 @@ For a compiled build:
 npm run build
 npm start
 ```
+
+The compiled server serves both the UI and API at **http://127.0.0.1:3000**.
+The web source is in `web/`; generated browser assets are in `dist/web/`.
+The existing Node/PostgreSQL server is required when hosting this application.
 
 ## Supabase setup: actions for the project owner
 
@@ -85,7 +130,14 @@ For bearer-token authentication, set:
 DEMO_AUTH_MODE=false
 SUPABASE_URL=https://<your-project>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<your-server-side-key>
+SUPABASE_PUBLISHABLE_KEY=<your-public-publishable-or-anon-key>
 ```
+
+The web app then shows an email/password sign-in form. The public publishable key
+is sent to the browser; the service role key and database connection stay on the
+server. Existing demo mode needs no additional Supabase configuration. Real users
+must have a Supabase Auth account with email/password enabled and be provisioned
+in the platform as described below. Self-registration is not enabled.
 
 The adapter validates `Authorization: Bearer <access-token>` using Supabase
 [`auth.getUser`](https://supabase.com/docs/reference/javascript/auth-getuser).

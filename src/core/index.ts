@@ -7,6 +7,7 @@ import { matchServices } from './services/matches.js';
 import { engagementServices } from './services/engagements.js';
 import { feedbackServices } from './services/feedback.js';
 import { candidateServices } from './services/matching-candidates.js';
+import { notificationServices } from './services/notifications.js';
 export function createCore(
   db: Database,
   options?: Partial<Pick<Context, 'now' | 'id'>>,
@@ -20,6 +21,7 @@ export function createCore(
     ...engagementServices(ctx),
     ...feedbackServices(ctx),
     ...candidateServices(ctx),
+    ...notificationServices(ctx),
   };
 }
 export type Core = ReturnType<typeof createCore>;

@@ -1,5 +1,10 @@
 # Engagements and bookings
 
+`GET /api/engagements` returns the authenticated participant or volunteer's own
+sessions, newest creation first. Operators can list all sessions. Each result
+includes `feedback_submitted`, which reflects only the current caller's feedback.
+Unauthenticated callers receive 401. Other participants' bookings are excluded.
+
 `POST /api/engagements` accepts exactly one source. Ownership and service details
 are derived on the server; do not send participant IDs, volunteer IDs, or status.
 

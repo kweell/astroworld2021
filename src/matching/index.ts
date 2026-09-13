@@ -19,6 +19,7 @@ export type {
 } from './types/career-story.js';
 
 export { matchVolunteers } from './scoring/match-volunteers.js';
+export { applyHardFilters } from './scoring/hard-filters.js';
 export { rankCareerStoryOffers } from './scoring/rank-career-story-offers.js';
 export { findOverlap } from './availability/find-overlap.js';
 export { isBookable } from './availability/is-bookable.js';

@@ -11,6 +11,7 @@ import { offerRoutes } from './routes/offers.js';
 import { matchRoutes } from './routes/matches.js';
 import { engagementRoutes } from './routes/engagements.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { notificationRoutes } from './routes/notifications.js';
 export function createApp(
   core: Core,
   auth: AuthAdapter,
@@ -28,6 +29,7 @@ export function createApp(
     matchRoutes(authenticated, core);
     engagementRoutes(authenticated, core);
     feedbackRoutes(authenticated, core);
+    notificationRoutes(authenticated, core);
     registerIntegration?.(authenticated);
   });
   return app;

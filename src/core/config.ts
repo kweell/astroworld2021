@@ -15,6 +15,7 @@ const configSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     SUPABASE_DB_URL: z.string().optional(),
     SUPABASE_URL: z.string().optional(),
+    SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
     SUPABASE_DB_CA_PATH: z.string().optional(),
   })

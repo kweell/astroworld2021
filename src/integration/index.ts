@@ -6,9 +6,16 @@ import {
 } from './generate-matches.js';
 
 export function createPlatform(db: Database, options?: CoreOptions) {
+  const matching = createMatchingIntegration(db, options);
   return {
-    core: createCore(db, options),
-    matching: createMatchingIntegration(db, options),
+    core: {
+      ...createCore(db, options),
+      createRequest: matching.createRequest,
+      updateRequest: matching.updateRequest,
+      updateProfile: matching.updateProfile,
+      listMatches: matching.listMatches,
+    },
+    matching,
   };
 }
 export { createMatchingIntegration } from './generate-matches.js';

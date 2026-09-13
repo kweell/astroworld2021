@@ -1,0 +1,13 @@
+import { defineConfig } from 'vite';
+import 'dotenv/config';
+
+export default defineConfig({
+  root: 'web',
+  build: { outDir: '../dist/web', emptyOutDir: true },
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+    proxy: { '/api': `http://127.0.0.1:${process.env.PORT ?? 3000}` },
+  },
+});

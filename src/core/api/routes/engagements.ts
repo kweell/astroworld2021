@@ -4,6 +4,9 @@ import { actor } from '../middleware/authenticate.js';
 import { routeId } from '../middleware/validate.js';
 import { success } from '../responses.js';
 export function engagementRoutes(app: FastifyInstance, core: Core): void {
+  app.get('/api/engagements', async (request) =>
+    success(await core.listEngagements(actor(request))),
+  );
   app.post('/api/engagements', async (request, reply) =>
     reply
       .code(201)

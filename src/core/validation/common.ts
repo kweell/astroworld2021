@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ACCESS_PREFERENCES, INTERACTION_MODES } from '../domain/types.js';
+import { normalizeInterest, validInterest } from '../domain/interests.js';
 export const idSchema = z.uuid();
 export const text = z.string().trim().min(1).max(4000);
 export const title = text.max(160);
@@ -15,6 +16,18 @@ export const tags = z
   .max(30)
   .transform((v) => [...new Set(v)]);
 export const access = z.array(z.enum(ACCESS_PREFERENCES)).max(7);
+export const interestTags = z
+  .array(
+    z
+      .string()
+      .transform(normalizeInterest)
+      .refine(
+        validInterest,
+        'Enter a topic or industry of 1–80 characters; replace Others with your own value and do not include markup or commas',
+      ),
+  )
+  .max(30, 'Choose no more than 30 interests')
+  .transform((values) => [...new Set(values)]);
 export const timestamp = z.iso
   .datetime({ offset: true })
   .transform((v) => new Date(v).toISOString());

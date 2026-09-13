@@ -82,7 +82,7 @@ describe('combined platform', () => {
     },
   );
 
-  it('requires full access support rather than recommending an unbookable volunteer', async () => {
+  it('keeps strict rankings bookable while still notifying a topic match for review', async () => {
     const request = await t.core.createRequest(t.participant, {
       ...ama,
       access_preferences: ['written_instructions', 'wheelchair_access'],
@@ -92,7 +92,12 @@ describe('combined platform', () => {
       request.id,
     );
     expect(matches).toEqual([]);
-    expect((await t.core.getRequest(request.id)).status).toBe('open');
+    expect(
+      (await platform().core.listNotifications(t.volunteer)).some(
+        (n) => n.request_id === request.id,
+      ),
+    ).toBe(true);
+    expect((await t.core.getRequest(request.id)).status).toBe('matched');
   });
 
   it('persists readable reasons even with no preference overlap', async () => {

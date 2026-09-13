@@ -7,6 +7,7 @@ import {
   registerMatchingRoutes,
 } from '../../integration/index.js';
 import { createApp } from './app.js';
+import { registerWeb } from './web.js';
 const config = readConfig();
 const db = await connectDatabase(config);
 const auth = config.DEMO_AUTH_MODE
@@ -16,6 +17,7 @@ const { core, matching } = createPlatform(db);
 const app = createApp(core, auth, (api) =>
   registerMatchingRoutes(api, matching),
 );
+registerWeb(app, db, config);
 app.addHook('onClose', async () => db.close());
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.once(signal, () => {

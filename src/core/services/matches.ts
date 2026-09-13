@@ -6,6 +6,7 @@ import { matchPatchSchema, saveMatchesSchema } from '../validation/matches.js';
 import type { Context } from './context.js';
 import { acceptMatch } from './engagements.js';
 import { canReadRequest, expireSuggested } from './requests.js';
+import { overlappingTopics } from '../domain/interests.js';
 export function matchServices(ctx: Context) {
   return {
     // Trusted integration entry point. Scores/reasons are persisted, never computed here.
@@ -28,19 +29,48 @@ export function matchServices(ctx: Context) {
           );
         await expireSuggested(repo, requestId);
         const matches = [];
-        for (const result of data.results)
-          matches.push(
-            await repo.insert('matches', {
-              id: ctx.id(),
-              request_id: requestId,
-              volunteer_id: result.volunteerId,
-              score: result.score,
-              reasons: result.reasons,
-              suggested_windows: result.compatibleWindows,
-              status: 'suggested',
-              created_at: ctx.now().toISOString(),
-            }),
+        for (const result of data.results) {
+          const match = await repo.insert('matches', {
+            id: ctx.id(),
+            request_id: requestId,
+            volunteer_id: result.volunteerId,
+            score: result.score,
+            reasons: result.reasons,
+            suggested_windows: result.compatibleWindows,
+            status: 'suggested',
+            created_at: ctx.now().toISOString(),
+          });
+          matches.push(match);
+          const volunteer = requireFound(
+            await repo.get('volunteer_profiles', result.volunteerId),
+            'Volunteer profile',
           );
+          if (
+            volunteer.verification_status === 'verified' &&
+            overlappingTopics(request.topic_tags, volunteer.expertise_tags)
+              .length
+          ) {
+            const existing = (
+              await repo.list('notifications', {
+                recipient_id: result.volunteerId,
+                request_id: requestId,
+              })
+            )[0];
+            if (existing)
+              await repo.update('notifications', existing.id, {
+                match_id: match.id,
+              });
+            else
+              await repo.insert('notifications', {
+                id: ctx.id(),
+                recipient_id: result.volunteerId,
+                request_id: requestId,
+                match_id: match.id,
+                created_at: ctx.now().toISOString(),
+                read_at: null,
+              });
+          }
+        }
         await repo.update('service_requests', requestId, {
           status: matches.length ? 'matched' : 'open',
         });

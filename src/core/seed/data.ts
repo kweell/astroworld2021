@@ -198,5 +198,6 @@ export function buildSeed(): { [K in keyof Tables]: Tables[K][] } {
     matches: [],
     engagements: [],
     feedback: [],
+    notifications: [],
   };
 }

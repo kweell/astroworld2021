@@ -90,6 +90,15 @@ export interface Match {
   status: MatchStatus;
   created_at: string;
 }
+export interface MatchWithReadiness extends Match {
+  booking: {
+    ready: boolean;
+    issues: string[];
+    missing_access_preferences: string[];
+    missing_service: boolean;
+    missing_mode: boolean;
+  };
+}
 export interface Engagement extends Timestamps {
   id: string;
   participant_id: string;
@@ -114,6 +123,7 @@ export interface Feedback {
   created_at: string;
 }
 export interface Tables {
+  notifications: RequestNotification;
   users: User;
   participant_profiles: ParticipantProfile;
   volunteer_profiles: VolunteerProfile;
@@ -122,4 +132,18 @@ export interface Tables {
   matches: Match;
   engagements: Engagement;
   feedback: Feedback;
+}
+export interface RequestNotification {
+  id: string;
+  recipient_id: string;
+  request_id: string;
+  match_id: string;
+  created_at: string;
+  read_at: string | null;
+}
+export interface NotificationItem extends RequestNotification {
+  request_title: string;
+  service_type: ParticipantService;
+  matching_topics: string[];
+  duration_minutes: number;
 }

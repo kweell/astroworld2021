@@ -219,6 +219,23 @@ export async function transitionEngagement(
 }
 export function engagementServices(ctx: Context) {
   return {
+    async listEngagements(actor: User) {
+      const feedback = await ctx.db.list('feedback', {
+        submitted_by: actor.id,
+      });
+      return (await ctx.db.list('engagements'))
+        .filter(
+          (engagement) =>
+            isOperator(actor) || isEngagementMember(actor.id, engagement),
+        )
+        .map((engagement) => ({
+          ...engagement,
+          feedback_submitted: feedback.some(
+            (item) => item.engagement_id === engagement.id,
+          ),
+        }))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    },
     async createEngagement(actor: User, input: unknown) {
       const data = engagementSchema.parse(input);
       return ctx.db.transaction((repo) =>
