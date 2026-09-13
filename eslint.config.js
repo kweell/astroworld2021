@@ -13,11 +13,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      'src/matching/**',
-      'src/integration/**',
-    ],
+    ignores: ['dist/**', 'node_modules/**'],
   },
 );
