@@ -1,0 +1,9 @@
+project_id = "micro-access-platform"
+# Optional Supabase CLI setup. Normal local development uses embedded PostgreSQL.
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+[db]
+major_version = 17
+[db.seed]
+enabled = false

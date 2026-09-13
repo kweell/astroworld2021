@@ -1,0 +1,41 @@
+{
+  "name": "micro-access-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "node --watch --import tsx src/core/api/server.ts",
+    "start": "node dist/src/core/api/server.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:core": "vitest run src/core/tests",
+    "lint": "eslint src/core scripts",
+    "format": "prettier --write src/core scripts docs README.md package.json tsconfig.json vitest.config.ts eslint.config.js .prettierrc.json",
+    "format:check": "prettier --check src/core scripts docs README.md package.json tsconfig.json vitest.config.ts eslint.config.js .prettierrc.json",
+    "db:migrate": "node --import tsx scripts/setup.ts",
+    "db:seed": "node --import tsx src/core/seed/seed.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.12.4",
+    "pg": "^8.23.0",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.2",
+    "@types/pg": "^8.23.1",
+    "eslint": "^10.10.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.0"
+  }
+}
